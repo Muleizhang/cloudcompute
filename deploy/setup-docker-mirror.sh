@@ -35,18 +35,19 @@ if [ -f "$DAEMON_JSON" ]; then
 fi
 
 # 写入镜像加速配置
-REGISTRY_MIRRORS=$(printf '    "%s"' "${MIRRORS[0]}")
-for m in "${MIRRORS[@]:1}"; do
-  REGISTRY_MIRRORS="${REGISTRY_MIRRORS},\n    \"${m}\""
-done
-
-cat > "$DAEMON_JSON" <<EOF
 {
-  "registry-mirrors": [
-$(printf '%s\n' "$REGISTRY_MIRRORS")
-  ]
-}
-EOF
+  echo "{"
+  echo '  "registry-mirrors": ['
+  for i in "${!MIRRORS[@]}"; do
+    suffix=","
+    if [ "$i" -eq "$((${#MIRRORS[@]} - 1))" ]; then
+      suffix=""
+    fi
+    printf '    "%s"%s\n' "${MIRRORS[$i]}" "$suffix"
+  done
+  echo "  ]"
+  echo "}"
+} > "$DAEMON_JSON"
 
 echo "已写入 $DAEMON_JSON"
 cat "$DAEMON_JSON"
