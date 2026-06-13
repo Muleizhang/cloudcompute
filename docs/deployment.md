@@ -6,15 +6,15 @@
 
 1. 在华为云开发者空间创建 Linux 开发环境，确认 Docker 与 Docker Compose 可用。
 2. 上传或克隆本项目代码。
-3. **配置 Docker 镜像加速器**（国内服务器必须）：
+3. **配置 Docker 和 pip 镜像加速器**（国内服务器必须）：
 
-华为云开发者空间的网络无法直连 Docker Hub，拉取 `enmotech/opengauss`、`python`、`node`、`nginx` 等镜像时会超时。执行以下脚本自动配置镜像加速：
+华为云开发者空间的网络访问 Docker Hub 和 PyPI 可能较慢，拉取 `enmotech/opengauss`、`python`、`node`、`nginx` 等镜像或执行 `pip install` 时会超时。执行以下脚本自动配置镜像加速：
 
 ```bash
 sudo bash deploy/setup-docker-mirror.sh
 ```
 
-该脚本会写入 `/etc/docker/daemon.json` 并重启 Docker。配置完成后即可正常拉取所有镜像。
+该脚本会写入 `/etc/docker/daemon.json` 和 `/etc/pip.conf`，并重启 Docker。配置完成后即可正常拉取镜像和 Python 依赖。Docker 构建后端镜像时默认使用 `.env` 中的 `PIP_INDEX_URL` 和 `PIP_TRUSTED_HOST`，也可以按需替换为其他 PyPI 镜像源。
 
 若脚本中的镜像源失效，可手动测试可用源并替换：
 
@@ -39,7 +39,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-> **注意**：如果构建时报 `failed to resolve reference` 或 `i/o timeout`，说明镜像加速器未配置或已失效，请回到「环境准备」第 3 步。
+> **注意**：如果构建时报 `failed to resolve reference`、`i/o timeout`，或 `pip install` 下载很慢，说明镜像加速器未配置或已失效，请回到「环境准备」第 3 步。
 
 容器职责：
 
