@@ -6,7 +6,25 @@
 
 1. 在华为云开发者空间创建 Linux 开发环境，确认 Docker 与 Docker Compose 可用。
 2. 上传或克隆本项目代码。
-3. 复制环境变量模板：
+3. **配置 Docker 镜像加速器**（国内服务器必须）：
+
+华为云开发者空间的网络无法直连 Docker Hub，拉取 `enmotech/opengauss`、`python`、`node`、`nginx` 等镜像时会超时。执行以下脚本自动配置镜像加速：
+
+```bash
+sudo bash deploy/setup-docker-mirror.sh
+```
+
+该脚本会写入 `/etc/docker/daemon.json` 并重启 Docker。配置完成后即可正常拉取所有镜像。
+
+若脚本中的镜像源失效，可手动测试可用源并替换：
+
+```bash
+docker pull docker.m.daocloud.io/enmotech/opengauss:5.0.0
+```
+
+找到可用的源后，将其写入 `/etc/docker/daemon.json` 的 `registry-mirrors` 数组，再执行 `sudo systemctl restart docker`。
+
+4. 复制环境变量模板：
 
 ```bash
 cp .env.example .env
@@ -20,6 +38,8 @@ cp .env.example .env
 docker compose up -d --build
 docker compose ps
 ```
+
+> **注意**：如果构建时报 `failed to resolve reference` 或 `i/o timeout`，说明镜像加速器未配置或已失效，请回到「环境准备」第 3 步。
 
 容器职责：
 

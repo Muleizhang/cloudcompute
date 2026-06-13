@@ -27,8 +27,11 @@
 
 ```bash
 cp .env.example .env
+sudo bash deploy/setup-docker-mirror.sh   # 国内服务器需先配置镜像加速
 docker compose up -d --build
 ```
+
+如果启动时报 `failed to resolve reference` 或 `i/o timeout`，通常是服务器无法直连 Docker Hub。先执行上面的镜像加速脚本，再重新运行 `docker compose up -d --build`。
 
 访问地址：
 
