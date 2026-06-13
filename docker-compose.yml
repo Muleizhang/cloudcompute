@@ -1,0 +1,49 @@
+services:
+  opengauss:
+    image: enmotech/opengauss:5.0.0
+    container_name: gaussops-opengauss
+    privileged: true
+    user: root
+    environment:
+      GS_NODENAME: gaussops_node
+      GS_PASSWORD: ${OPENGAUSS_PASSWORD:-Gauss@2026}
+      GS_USERNAME: gaussdb
+      GS_PORT: 5432
+    ports:
+      - "${OPENGAUSS_PORT:-5432}:5432"
+    volumes:
+      - opengauss_data:/var/lib/opengauss
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: gaussops-backend
+    environment:
+      APP_CORS_ORIGINS: "http://localhost:${FRONTEND_PORT:-8080}"
+      DATABASE_HOST: ${DATABASE_HOST:-opengauss}
+      DATABASE_PORT: ${DATABASE_PORT:-5432}
+      DATABASE_NAME: ${DATABASE_NAME:-postgres}
+      DATABASE_USER: ${DATABASE_USER:-gaussdb}
+      DATABASE_PASSWORD: ${OPENGAUSS_PASSWORD:-Gauss@2026}
+      DATABASE_SSLMODE: disable
+    depends_on:
+      - opengauss
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: gaussops-frontend
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    restart: unless-stopped
+
+volumes:
+  opengauss_data:
