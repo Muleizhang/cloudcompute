@@ -1,6 +1,6 @@
 # 部署说明
 
-本项目按华为云开发者空间的容器化实验场景组织，包含 openGauss、后端 API、前端 Nginx 三个容器。
+本项目按华为云开发者空间的容器化实验场景组织，包含 openGauss、后端 API、前端 Nginx 和 Spark 批处理分析容器。
 
 ## 1. 环境准备
 
@@ -8,7 +8,7 @@
 2. 上传或克隆本项目代码。
 3. **配置 Docker 和 pip 镜像加速器**（国内服务器必须）：
 
-华为云开发者空间的网络访问 Docker Hub 和 PyPI 可能较慢，拉取 `enmotech/opengauss`、`python`、`node`、`nginx` 等镜像或执行 `pip install` 时会超时。执行以下脚本自动配置镜像加速：
+华为云开发者空间的网络访问 Docker Hub、PyPI、npm 和 Maven/JDBC 下载地址可能较慢，拉取 `enmotech/opengauss`、`python`、`node`、`nginx`、`apache/spark` 等镜像或执行 `pip install`、`npm ci` 时会超时。执行以下脚本自动配置镜像加速：
 
 ```bash
 sudo bash deploy/setup-docker-mirror.sh
@@ -46,12 +46,26 @@ docker compose ps
 - `gaussops-opengauss`：openGauss 数据库容器，默认连接用户为 `gaussdb`，数据写入 Docker volume `opengauss_data`。
 - `gaussops-backend`：FastAPI 后端，启动时自动建表并写入示例数据。
 - `gaussops-frontend`：Nginx 前端容器，对外暴露 Web 页面，并将 `/api` 代理到后端容器。
+- `gaussops-spark-analytics`：Spark 批处理容器，通过 JDBC 读取 `cloud_tasks`，计算指标后写入 `spark_task_analytics`。
+
+Spark 容器是一次性任务，执行完成后会退出。查看日志确认 Spark 已实际读写 openGauss：
+
+```bash
+docker compose logs spark-analytics
+```
+
+新增、修改或删除任务后，可重新触发 Spark 分析：
+
+```bash
+docker compose run --rm spark-analytics
+```
 
 ## 3. 连通性测试
 
 ```bash
 curl http://localhost:8000/api/health
 curl http://localhost:8000/api/tasks
+curl http://localhost:8000/api/spark-analytics/latest
 curl http://localhost:8080
 ```
 
@@ -86,6 +100,8 @@ DATABASE_HOST=host.docker.internal DATABASE_PORT=5432 docker compose up -d --bui
 docker compose logs -f opengauss
 docker compose logs -f backend
 docker compose logs -f frontend
+docker compose logs spark-analytics
+docker compose run --rm spark-analytics
 docker compose down
 docker compose down -v
 ```
@@ -97,6 +113,7 @@ docker compose down -v
 ```bash
 docker build -t gaussops-backend:1.0 ./backend
 docker build -t gaussops-frontend:1.0 ./frontend
+docker build -t gaussops-spark:1.0 ./spark
 ```
 
 如果课程检查要求提交镜像构建过程截图，可分别截取上述构建日志、`docker images` 输出和 `docker compose ps` 输出。

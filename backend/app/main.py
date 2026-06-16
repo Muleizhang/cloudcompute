@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import RESOURCE_TYPES, get_connection, initialize_database
-from .models import HealthOut, MetricsOut, TaskCreate, TaskOut, TaskUpdate
+from .models import HealthOut, MetricsOut, SparkAnalyticsOut, TaskCreate, TaskOut, TaskUpdate
 
 
 settings = get_settings()
@@ -229,3 +229,39 @@ def metrics() -> dict[str, Any]:
         "by_resource_type": by_resource_type,
     }
 
+
+@app.get("/api/spark-analytics/latest", response_model=SparkAnalyticsOut)
+def latest_spark_analytics() -> dict[str, Any]:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    available,
+                    generated_at,
+                    total_tasks,
+                    done_tasks,
+                    running_tasks,
+                    overdue_tasks,
+                    high_priority_open_tasks,
+                    completion_rate
+                FROM spark_task_analytics
+                ORDER BY generated_at DESC, id DESC
+                LIMIT 1;
+                """
+            )
+            row = cur.fetchone()
+
+    if row:
+        return row
+
+    return {
+        "available": False,
+        "generated_at": None,
+        "total_tasks": 0,
+        "done_tasks": 0,
+        "running_tasks": 0,
+        "overdue_tasks": 0,
+        "high_priority_open_tasks": 0,
+        "completion_rate": 0.0,
+    }

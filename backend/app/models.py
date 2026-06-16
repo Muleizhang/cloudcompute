@@ -58,3 +58,13 @@ class HealthOut(BaseModel):
     database: str
     detail: str
 
+
+class SparkAnalyticsOut(BaseModel):
+    available: bool
+    generated_at: datetime | None = None
+    total_tasks: int
+    done_tasks: int
+    running_tasks: int
+    overdue_tasks: int
+    high_priority_open_tasks: int
+    completion_rate: float

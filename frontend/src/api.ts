@@ -1,4 +1,4 @@
-import type { CloudTask, Health, Metrics, TaskPayload, TaskStatus } from "./types";
+import type { CloudTask, Health, Metrics, SparkAnalytics, TaskPayload, TaskStatus } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
@@ -33,6 +33,10 @@ export function getResourceTypes(): Promise<string[]> {
 
 export function getMetrics(): Promise<Metrics> {
   return request<Metrics>("/api/metrics");
+}
+
+export function getSparkAnalytics(): Promise<SparkAnalytics> {
+  return request<SparkAnalytics>("/api/spark-analytics/latest");
 }
 
 export function getTasks(params: {
@@ -71,4 +75,3 @@ export function finishTask(id: number): Promise<CloudTask> {
 export function deleteTask(id: number): Promise<void> {
   return request<void>(`/api/tasks/${id}`, { method: "DELETE" });
 }
-

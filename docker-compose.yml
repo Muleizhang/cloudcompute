@@ -41,12 +41,30 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
     container_name: gaussops-frontend
     depends_on:
       - backend
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     restart: unless-stopped
+
+  spark-analytics:
+    build:
+      context: ./spark
+    container_name: gaussops-spark-analytics
+    environment:
+      DATABASE_HOST: ${DATABASE_HOST:-opengauss}
+      DATABASE_PORT: ${DATABASE_PORT:-5432}
+      DATABASE_NAME: ${DATABASE_NAME:-postgres}
+      DATABASE_USER: ${DATABASE_USER:-gaussdb}
+      DATABASE_PASSWORD: ${OPENGAUSS_PASSWORD:-Gauss@2026}
+      SPARK_DB_MAX_ATTEMPTS: 30
+    depends_on:
+      - opengauss
+      - backend
+    restart: "no"
 
 volumes:
   opengauss_data:

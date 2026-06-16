@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Search,
   Server,
+  Sigma,
   Trash2
 } from "lucide-react";
 
@@ -17,10 +18,19 @@ import {
   getHealth,
   getMetrics,
   getResourceTypes,
+  getSparkAnalytics,
   getTasks,
   updateTask
 } from "./api";
-import type { CloudTask, Health, Metrics, TaskPayload, TaskPriority, TaskStatus } from "./types";
+import type {
+  CloudTask,
+  Health,
+  Metrics,
+  SparkAnalytics,
+  TaskPayload,
+  TaskPriority,
+  TaskStatus
+} from "./types";
 
 const statusOptions: Array<{ value: TaskStatus | "all"; label: string }> = [
   { value: "all", label: "全部状态" },
@@ -53,6 +63,7 @@ const emptyForm: TaskPayload = {
 function App() {
   const [tasks, setTasks] = useState<CloudTask[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [sparkAnalytics, setSparkAnalytics] = useState<SparkAnalytics | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [resourceTypes, setResourceTypes] = useState<string[]>(["ECS"]);
   const [keyword, setKeyword] = useState("");
@@ -70,16 +81,18 @@ function App() {
   async function loadData() {
     setBusy(true);
     try {
-      const [taskResult, metricResult, healthResult, typeResult] = await Promise.all([
+      const [taskResult, metricResult, healthResult, typeResult, sparkResult] = await Promise.all([
         getTasks({ keyword, status: statusFilter, resourceType: resourceFilter }),
         getMetrics(),
         getHealth(),
-        getResourceTypes()
+        getResourceTypes(),
+        getSparkAnalytics()
       ]);
       setTasks(taskResult);
       setMetrics(metricResult);
       setHealth(healthResult);
       setResourceTypes(typeResult);
+      setSparkAnalytics(sparkResult);
       setMessage(`已同步 ${taskResult.length} 条任务`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "请求失败");
@@ -148,6 +161,14 @@ function App() {
 
   const doneCount = metrics?.by_status.find((item) => item.key === "done")?.count ?? 0;
   const runningCount = metrics?.by_status.find((item) => item.key === "running")?.count ?? 0;
+  const sparkCompletionRate =
+    sparkAnalytics?.available && sparkAnalytics.total_tasks > 0
+      ? `${Math.round(sparkAnalytics.completion_rate * 100)}%`
+      : "--";
+  const sparkGeneratedAt =
+    sparkAnalytics?.available && sparkAnalytics.generated_at
+      ? new Date(sparkAnalytics.generated_at).toLocaleString("zh-CN", { hour12: false })
+      : "等待 Spark 分析结果";
 
   return (
     <main className="app-shell">
@@ -224,6 +245,32 @@ function App() {
           <span>逾期未完成</span>
           <strong>{metrics?.overdue ?? "--"}</strong>
         </article>
+      </section>
+
+      <section className="spark-panel" aria-label="Spark 分析结果">
+        <div className="section-title">
+          <Sigma size={18} aria-hidden="true" />
+          <h2>Spark 分析结果</h2>
+          <span className="status-text">{sparkGeneratedAt}</span>
+        </div>
+        <div className="spark-grid">
+          <article>
+            <span>完成率</span>
+            <strong>{sparkCompletionRate}</strong>
+          </article>
+          <article>
+            <span>Spark 任务总数</span>
+            <strong>{sparkAnalytics?.available ? sparkAnalytics.total_tasks : "--"}</strong>
+          </article>
+          <article>
+            <span>逾期未完成</span>
+            <strong>{sparkAnalytics?.available ? sparkAnalytics.overdue_tasks : "--"}</strong>
+          </article>
+          <article>
+            <span>高优先级未完成</span>
+            <strong>{sparkAnalytics?.available ? sparkAnalytics.high_priority_open_tasks : "--"}</strong>
+          </article>
+        </div>
       </section>
 
       <div className="content-grid">
@@ -407,4 +454,3 @@ function App() {
 }
 
 export default App;
-

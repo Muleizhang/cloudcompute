@@ -36,9 +36,19 @@ export interface Metrics {
   by_resource_type: MetricBucket[];
 }
 
+export interface SparkAnalytics {
+  available: boolean;
+  generated_at: string | null;
+  total_tasks: number;
+  done_tasks: number;
+  running_tasks: number;
+  overdue_tasks: number;
+  high_priority_open_tasks: number;
+  completion_rate: number;
+}
+
 export interface Health {
   service: string;
   database: string;
   detail: string;
 }
-

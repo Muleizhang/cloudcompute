@@ -28,6 +28,21 @@ CREATE TABLE IF NOT EXISTS cloud_tasks (
 CREATE INDEX IF NOT EXISTS idx_cloud_tasks_status ON cloud_tasks(status);
 CREATE INDEX IF NOT EXISTS idx_cloud_tasks_resource_type ON cloud_tasks(resource_type);
 CREATE INDEX IF NOT EXISTS idx_cloud_tasks_due_date ON cloud_tasks(due_date);
+
+CREATE TABLE IF NOT EXISTS spark_task_analytics (
+    id BIGSERIAL PRIMARY KEY,
+    available BOOLEAN NOT NULL DEFAULT TRUE,
+    generated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    total_tasks INTEGER NOT NULL DEFAULT 0,
+    done_tasks INTEGER NOT NULL DEFAULT 0,
+    running_tasks INTEGER NOT NULL DEFAULT 0,
+    overdue_tasks INTEGER NOT NULL DEFAULT 0,
+    high_priority_open_tasks INTEGER NOT NULL DEFAULT 0,
+    completion_rate DOUBLE PRECISION NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_spark_task_analytics_generated_at
+ON spark_task_analytics(generated_at DESC);
 """
 
 SEED_ROWS = [
@@ -104,4 +119,3 @@ def initialize_database(max_attempts: int = 30) -> None:
             last_error = exc
             time.sleep(min(2.0, 0.25 * attempt))
     raise RuntimeError(f"Database initialization failed: {last_error}") from last_error
-

@@ -7,7 +7,8 @@
 - openGauss 容器化部署，数据卷持久化。
 - FastAPI 后端自动建表、写入示例数据，并提供完整 CRUD 与统计接口。
 - React 前端提供任务新增、搜索、状态筛选、资源筛选、状态更新、完成标记、删除和指标展示。
-- 前端、后端均提供 Dockerfile，`docker-compose.yml` 可一键启动数据库、后端和前端。
+- Spark 批处理容器通过 JDBC 读取 openGauss 任务表，计算分析指标并写回 openGauss。
+- 前端、后端、Spark 均提供 Dockerfile，`docker-compose.yml` 可一键启动数据库、后端、前端和 Spark 分析任务。
 - `docs/experiment-report.md` 提供实验报告草稿，`docs/deployment.md` 提供华为云开发者空间部署步骤。
 
 ## 项目结构
@@ -17,8 +18,9 @@
 ├── backend/                # FastAPI 后端
 ├── deploy/                 # openGauss 主备伪分布式部署脚本
 ├── frontend/               # React + Vite 前端
+├── spark/                  # Spark JDBC 批处理分析任务
 ├── docs/                   # 部署说明和实验报告
-├── docker-compose.yml      # openGauss + backend + frontend 编排
+├── docker-compose.yml      # openGauss + backend + frontend + Spark 编排
 ├── .env.example            # 环境变量模板
 └── README.md
 ```
@@ -58,6 +60,19 @@ docker compose ps
 curl http://localhost:8000/api/health
 curl http://localhost:8000/api/tasks
 curl http://localhost:8000/api/metrics
+curl http://localhost:8000/api/spark-analytics/latest
+```
+
+Spark 分析容器为一次性批处理任务。查看 Spark 读写 openGauss 的日志：
+
+```bash
+docker compose logs spark-analytics
+```
+
+新增或修改任务后，可手动重新运行 Spark 分析：
+
+```bash
+docker compose run --rm spark-analytics
 ```
 
 更详细步骤见 [docs/deployment.md](docs/deployment.md)。
@@ -80,6 +95,7 @@ bash deploy/create-opengauss-master-standby.sh
 | `POST` | `/api/tasks/{id}/finish` | 标记任务完成 |
 | `DELETE` | `/api/tasks/{id}` | 删除任务 |
 | `GET` | `/api/metrics` | 查询统计指标 |
+| `GET` | `/api/spark-analytics/latest` | 查询 Spark 写回 openGauss 的最新分析快照 |
 
 ## 本地开发
 
@@ -106,6 +122,7 @@ npm run dev
 ## 提交材料
 
 - 源代码：`backend/`、`frontend/`
+- 源代码：`spark/`
 - 配置文件：`docker-compose.yml`、`.env.example`、各 Dockerfile
 - 部署说明：[docs/deployment.md](docs/deployment.md)
 - 实验报告草稿：[docs/experiment-report.md](docs/experiment-report.md)
