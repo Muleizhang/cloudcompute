@@ -83,6 +83,71 @@ docker compose run --rm spark-analytics
 bash deploy/create-opengauss-master-standby.sh
 ```
 
+## 服务器部署命令
+
+首次在服务器部署：
+
+```bash
+git clone <你的仓库地址> endtermexp
+cd endtermexp
+
+cp .env.example .env
+```
+
+根据服务器端口和密码要求修改 `.env`，至少确认以下配置：
+
+```bash
+OPENGAUSS_PASSWORD=Gauss@2026
+BACKEND_PORT=8000
+FRONTEND_PORT=8080
+OPENGAUSS_PORT=5432
+```
+
+构建并启动全部服务：
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+检查服务状态和后端连通性：
+
+```bash
+docker compose ps
+curl http://localhost:8000/api/health
+```
+
+运行一次 Spark 分析，并检查 Spark 写回 openGauss 的结果：
+
+```bash
+docker compose run --rm spark-analytics
+curl http://localhost:8000/api/spark-analytics/latest
+```
+
+浏览器访问：
+
+```text
+http://服务器公网IP:8080
+```
+
+以后更新部署：
+
+```bash
+cd endtermexp
+git pull
+
+docker compose build
+docker compose up -d
+
+docker compose run --rm spark-analytics
+```
+
+华为云 ECS 或其他云服务器安全组建议：
+
+- 放通 `8080`：前端页面访问。
+- `8000` 仅调试后端接口时放通，正式演示可不放通。
+- `5432` 不建议公网开放，数据库应只在 Docker 内部网络访问。
+
 ## 后端接口
 
 | 方法 | 路径 | 说明 |
