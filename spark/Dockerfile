@@ -12,6 +12,10 @@ RUN apt-get update && \
 
 WORKDIR /app
 
+RUN mkdir -p /tmp/spark-events && chmod 1777 /tmp/spark-events
+
 COPY jobs ./jobs
 
-CMD ["/opt/spark/bin/spark-submit", "--master", "local[*]", "/app/jobs/task_analytics.py"]
+EXPOSE 4040 7077 8080 8081 18080
+
+CMD ["/opt/spark/bin/spark-submit", "--master", "spark://spark-master:7077", "--conf", "spark.ui.enabled=true", "--conf", "spark.ui.port=4040", "--conf", "spark.ui.bindAddress=0.0.0.0", "--conf", "spark.driver.host=spark-analytics", "--conf", "spark.driver.bindAddress=0.0.0.0", "--conf", "spark.eventLog.enabled=true", "--conf", "spark.eventLog.dir=file:/tmp/spark-events", "/app/jobs/task_analytics.py"]

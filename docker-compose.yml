@@ -50,6 +50,46 @@ services:
       - "${FRONTEND_PORT:-8080}:80"
     restart: unless-stopped
 
+  spark-master:
+    build:
+      context: ./spark
+    container_name: gaussops-spark-master
+    command: ["/opt/spark/sbin/start-master.sh"]
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_MASTER_HOST: spark-master
+      SPARK_MASTER_PORT: 7077
+      SPARK_MASTER_WEBUI_PORT: 8080
+    restart: unless-stopped
+
+  spark-worker:
+    build:
+      context: ./spark
+    container_name: gaussops-spark-worker
+    command: ["/opt/spark/sbin/start-worker.sh", "spark://spark-master:7077"]
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:-1}
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-1g}
+      SPARK_WORKER_WEBUI_PORT: 8081
+    depends_on:
+      - spark-master
+    restart: unless-stopped
+
+  spark-history:
+    build:
+      context: ./spark
+    container_name: gaussops-spark-history
+    command: ["/opt/spark/sbin/start-history-server.sh"]
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_HISTORY_OPTS: "-Dspark.history.fs.logDirectory=file:/tmp/spark-events -Dspark.history.ui.port=18080"
+    volumes:
+      - spark_events:/tmp/spark-events
+    ports:
+      - "${SPARK_UI_PORT:-4040}:18080"
+    restart: unless-stopped
+
   spark-analytics:
     build:
       context: ./spark
@@ -64,7 +104,13 @@ services:
     depends_on:
       - opengauss
       - backend
+      - spark-master
+      - spark-worker
+      - spark-history
+    volumes:
+      - spark_events:/tmp/spark-events
     restart: "no"
 
 volumes:
   opengauss_data:
+  spark_events:

@@ -36,7 +36,6 @@ cp .env.example .env
 
 ```bash
 docker compose up -d --build
-docker compose ps
 ```
 
 > **注意**：如果构建时报 `failed to resolve reference`、`i/o timeout`，或 `pip install` 下载很慢，说明镜像加速器未配置或已失效，请回到「环境准备」第 3 步。
@@ -46,19 +45,12 @@ docker compose ps
 - `gaussops-opengauss`：openGauss 数据库容器，默认连接用户为 `gaussdb`，数据写入 Docker volume `opengauss_data`。
 - `gaussops-backend`：FastAPI 后端，启动时自动建表并写入示例数据。
 - `gaussops-frontend`：Nginx 前端容器，对外暴露 Web 页面，并将 `/api` 代理到后端容器。
-- `gaussops-spark-analytics`：Spark 批处理容器，通过 JDBC 读取 `cloud_tasks`，计算指标后写入 `spark_task_analytics`。
+- `gaussops-spark-master`：Spark Master 常驻容器，负责接收 Spark 任务提交和调度 Worker。
+- `gaussops-spark-worker`：Spark Worker 常驻容器，向 Master 注册计算资源。
+- `gaussops-spark-history`：Spark History Server 常驻容器，读取 Spark 事件日志并对外展示历史应用页面。
+- `gaussops-spark-analytics`：Spark 批处理容器，向 Spark Master 提交任务，通过 JDBC 读取 `cloud_tasks`，计算指标后写入 `spark_task_analytics`。
 
-Spark 容器是一次性任务，执行完成后会退出。查看日志确认 Spark 已实际读写 openGauss：
-
-```bash
-docker compose logs spark-analytics
-```
-
-新增、修改或删除任务后，可重新触发 Spark 分析：
-
-```bash
-docker compose run --rm spark-analytics
-```
+Spark History Server 映射到宿主机 `4040` 端口，可通过 `http://服务器公网IP:4040` 长期访问。Spark 事件日志写入 Docker volume `spark_events`，Spark 分析任务结束后仍可在页面中查看历史应用记录。Spark 分析任务随 `docker compose up -d --build` 自动提交一次，分析结果写入 openGauss 后可由前端和后端接口读取。
 
 ## 3. 连通性测试
 
@@ -67,9 +59,10 @@ curl http://localhost:8000/api/health
 curl http://localhost:8000/api/tasks
 curl http://localhost:8000/api/spark-analytics/latest
 curl http://localhost:8080
+curl http://localhost:4040
 ```
 
-在开发者空间端口面板中开放或预览 `8080` 端口即可访问前端页面。
+在开发者空间端口面板中开放或预览 `8080` 和 `4040` 端口，即可分别访问前端页面和 Spark 历史管理页面。
 
 ## 4. 伪分布式 openGauss 主备部署
 
@@ -101,7 +94,6 @@ docker compose logs -f opengauss
 docker compose logs -f backend
 docker compose logs -f frontend
 docker compose logs spark-analytics
-docker compose run --rm spark-analytics
 docker compose down
 docker compose down -v
 ```

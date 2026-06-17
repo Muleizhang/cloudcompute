@@ -50,10 +50,9 @@ docker compose up -d --build
 ```bash
 cp .env.example .env
 docker compose up -d --build
-docker compose ps
 ```
 
-4. 在开发者空间端口面板预览 `8080` 端口，演示前端页面。
+4. 在开发者空间端口面板预览 `8080` 和 `4040` 端口，分别演示前端页面和 Spark 历史管理页面。
 5. 使用以下命令检查后端和数据库：
 
 ```bash
@@ -63,17 +62,7 @@ curl http://localhost:8000/api/metrics
 curl http://localhost:8000/api/spark-analytics/latest
 ```
 
-Spark 分析容器为一次性批处理任务。查看 Spark 读写 openGauss 的日志：
-
-```bash
-docker compose logs spark-analytics
-```
-
-新增或修改任务后，可手动重新运行 Spark 分析：
-
-```bash
-docker compose run --rm spark-analytics
-```
+Spark History Server 由 `spark-history` 常驻容器提供，地址为 `http://服务器公网IP:4040`，Spark 分析任务结束后页面仍可访问。
 
 更详细步骤见 [docs/deployment.md](docs/deployment.md)。
 
@@ -101,27 +90,33 @@ OPENGAUSS_PASSWORD=Gauss@2026
 BACKEND_PORT=8000
 FRONTEND_PORT=8080
 OPENGAUSS_PORT=5432
+SPARK_UI_PORT=4040
+SPARK_WORKER_CORES=1
+SPARK_WORKER_MEMORY=1g
 ```
 
 构建并启动全部服务：
 
 ```bash
-docker compose build
-docker compose up -d
+docker compose up -d --build
 ```
 
 检查服务状态和后端连通性：
 
 ```bash
-docker compose ps
 curl http://localhost:8000/api/health
 ```
 
-运行一次 Spark 分析，并检查 Spark 写回 openGauss 的结果：
+检查 Spark 写回 openGauss 的结果：
 
 ```bash
-docker compose run --rm spark-analytics
 curl http://localhost:8000/api/spark-analytics/latest
+```
+
+Spark History Server 默认映射到宿主机 `4040` 端口，由 `spark-history` 常驻容器提供，不依赖一次性分析任务是否正在运行：
+
+```text
+http://服务器公网IP:4040
 ```
 
 浏览器访问：
@@ -136,15 +131,13 @@ http://服务器公网IP:8080
 cd endtermexp
 git pull
 
-docker compose build
-docker compose up -d
-
-docker compose run --rm spark-analytics
+docker compose up -d --build
 ```
 
 华为云 ECS 或其他云服务器安全组建议：
 
 - 放通 `8080`：前端页面访问。
+- 演示 Spark 管理面板时放通 `4040`。
 - `8000` 仅调试后端接口时放通，正式演示可不放通。
 - `5432` 不建议公网开放，数据库应只在 Docker 内部网络访问。
 
